@@ -11,7 +11,11 @@ published: false
 本記事は, 有名なルーティングプロトコルであるIS-IS(Intermediate System to Intermediate System)に触れて, その挙動を見るものになります.
 
 ## はじめに
-aa
+みなさんはネットワークの経路制御で用いられるルーティングプロトコルと聞くと何を思い浮かべますか？
+OSPF, BGP, RIP, etc...などがよく挙げられますよね.
+他のテックブログでも上記のプロトコルを触ってみた系の記事はよく見かけます.
+しかし, 上記のプロトコルと同じぐらいの知名度を誇るIS-ISを触ってみた記事はあまり目にする機会がないですよね.
+そこで, 今回はIS-ISをFRRoutingを使って触ってみたいと思います.
 
 ## IS-ISとは？
 IS-ISとはIGP(Internal Gateway Protocol)の一つで, 各ルータの接続状況をもとにして経路を決定するリンクステートアルゴリズムを用いるプロトコルです.
@@ -33,14 +37,27 @@ IS-ISの特徴としては, ~~~
 本検証では, 以下のようなネットワークをcontaierlabで作成します.
 なお, 今回はソフトウェアルータの一つであるFRRoutingを用いてconfigを作成します.
 
-r2 -- r1 -- r3
-<!-- ネットワーク構成図をコードで作る -->
+<!-- ネットワーク構成図をmermaidで書く -->
+```mermaid
+flowchart LR
+    subgraph ISIS_AREA [IS-IS Area 49.0001]
+        direction LR
+        
+        R2["r2<br/>(10.1.1.2/24)<br/><br/>49.0001.1111.1111.0002.00"]
+        R1["r1<br/>(eth1: 10.1.1.1)<br/><br/>(eth2: 10.1.2.1)<br/>49.0001.1111.1111.0001.00"]
+        R3["r3<br/>(10.1.2.2/24)<br/><br/>49.0001.1111.1111.0003.00"]
 
-- r1
-    - eth1: 10.1.1.1/24
-    - eth2: 10.1.2.1/24
-- r2: 10.1.1.2/24
-- r3: 10.1.2.2/24
+        R2 <-- "10.1.1.0/24<br/> " --> R1
+        R1 <-- "10.1.2.0/24<br/> " --> R3
+    end
+
+    classDef router fill:#bbdefb,stroke:#0056b3,stroke-width:2px,color:black;
+    class R1,R2,R3 router;
+    
+    style ISIS_AREA fill:#f5f5f5,stroke:#666,stroke-width:2px,stroke-dasharray: 5 5
+```
+<!-- (r1 [eth1]: 10.1.1.1) -->
+<!-- (r1 [eth2]: 10.1.2.1) -->
 
 本記事はIS-ISの簡単な動作検証を行うので, 同一エリア(level-1)のみを対象とします.
 
@@ -49,7 +66,7 @@ r2 -- r1 -- r3
 <!-- ### 投入したコンフィグ -->
 ## 投入したコンフィグ
 
-r1
+**r1**
 ```
 frr version 10.1.1_git
 frr defaults traditional
@@ -73,7 +90,7 @@ router isis 1
 exit
 ```
 
-r2
+**r2**
 ```
 frr version 10.1.1_git
 frr defaults traditional
@@ -92,7 +109,7 @@ router isis 1
 exit
 ```
 
-r3
+**r3**
 ```
 frr version 10.1.1_git
 frr defaults traditional
@@ -114,7 +131,7 @@ exit
 <!-- ### 動作検証 -->
 ## 動作検証
 
-r2 -> r3
+**r2 -> r3**
 ```
 r2(config)# do ping 10.10.2.2
 PING 10.10.2.2 (10.10.2.2): 56 data bytes
@@ -127,7 +144,7 @@ PING 10.10.2.2 (10.10.2.2): 56 data bytes
 round-trip min/avg/max = 0.054/0.062/0.071 ms
 ```
 
-r3 -> r2
+**r3 -> r2**
 ```
 r3(config)# do ping 10.10.1.2
 PING 10.10.1.2 (10.10.1.2): 56 data bytes
@@ -224,3 +241,6 @@ Area 1:
 <!-- ### 動作検証 -->
 
 ## まとめ
+今回はIS-ISを触ってみました.
+同じ距離ベクトル型IGPであるOSPFと比べるとあまり聞き馴染みのないプロトコルですが, 意外とシンプルな構造になっていて触りやすい印象でした. 次はマルチエリアでの検証もやってみたいですね.
+この記事がIS-ISというプロトコルに興味を持つきっかけになってもらえれば幸いです.
