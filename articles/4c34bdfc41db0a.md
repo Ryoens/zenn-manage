@@ -3,12 +3,13 @@ title: "IS-IS触ってみた"
 emoji: "🌐"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [network, routing, is-is, tech]
-published: false
+published: true
+published_at: 2025-12-15 07:00
 ---
 
 本記事は[いちぴろ・エクスプローラ Advent Calendar 2025](https://qiita.com/advent-calendar/2025/ichipiro-explorer) Day 15の記事です.
 
-本記事は, 有名なルーティングプロトコルであるIS-IS(Intermediate System to Intermediate System)を触ってみたという内容です.
+本記事では, 有名なルーティングプロトコルであるIS-IS(Intermediate System to Intermediate System)を触ってみた結果を書いていきます.
 
 ## はじめに
 みなさんはネットワークの経路制御で用いられるルーティングプロトコルと聞くと何を思い浮かべますか？
@@ -30,15 +31,16 @@ IS-ISは以下のRFCで規定されています.
 他にもあるっぽいんですが, 今回は割愛します...
 :::
 
-IS-ISは, OSPFと同様の階層ルーティングを採用していますが, OSPFと異なり, レベルルーティングをサポートしています.
+IS-ISは, OSPFと同様の階層ルーティングを採用しています.
+OSPFではLSAですが, IS-ISではレベルルーティングを使用しているのが特徴的です.
 IS-ISで用いられるルーティングのレベルは以下の通りです.
 - level-1: 同一エリア内
 - level-2-1: 同一エリア + 異なるエリア
 - level-2-only: 異なるエリア間
 
 また, IS-ISは元々OSIに準拠していたため, エリアを示すアドレスの記法が独特です.
-ルーティングにはNSAPというアドレスを使っています.
-NSAPアドレスは, エリアID, システムID, NSELの3つから構成され, 16進数表記で区切りにドット(.)が使われます
+ルーティングにはNSAP(Network Service Access Point)というアドレス記法を使っています.
+NSAPアドレスは, エリアID, システムID, NSEL(NSAP Selector)の3つから構成され, 16進数表記で区切りにドット(.)が使われます.
 
 例えば, `49.0001.1111.1111.0001.00`の場合は以下のようになります.
 ```mermaid
@@ -86,9 +88,10 @@ flowchart LR
 ```
 
 ## 検証で使用するネットワーク構成
-本検証では, 以下のようなネットワークをcontaierlab上で構築します.
-なお, 今回はソフトウェアルータの一つであるFRRoutingを用いてconfigを作成していきます.
+本検証では, IS-ISが動作するネットワークをcontaierlab上で構築します.
 
+今回想定するネットワーク構成は以下の図に示す通りです.
+なお, 今回はIS-ISの簡単な動作検証を行うので, 同一エリア(level-1)のみを対象とします.
 <!-- ネットワーク構成図をmermaidで書く -->
 ```mermaid
 flowchart LR
@@ -109,14 +112,17 @@ flowchart LR
     style ISIS_AREA fill:#f5f5f5,stroke:#666,stroke-width:2px,stroke-dasharray: 5 5
 ```
 
-本記事はIS-ISの簡単な動作検証を行うので, 同一エリア(level-1)のみを対象とします.
-なお, FRRでIS-ISを使う場合, `isisd`を起動させる必要があるため, daemonsファイル内を以下のように変更します.
+今回はソフトウェアルータの一つであるFRRoutingを用いてIS-ISのconfigを作成していきます.
+ここで気を付けることとして, FRRでIS-ISを使う場合, `isisd`を起動させる必要があるため, daemonsファイル内を以下のように変更します.
 ```diff Markdown:daemons
 + isisd=yes
 - isisd=no
 ```
 
 ## 投入したコンフィグ
+::: message
+各ルータでは, `router isis 1`の定義をしてからインタフェースに`ip router isis 1`を設定してください.
+:::
 
 **r1**
 ```
@@ -180,7 +186,6 @@ router isis 1
 exit
 ```
 
-<!-- ### 動作検証 -->
 ## 動作検証
 
 **pingによる疎通確認**
@@ -212,6 +217,8 @@ r2, r3それぞれからpingは通っていることが確認できました.
 続いて, IS-ISが正常に動作しているか確認していきます
 中央のルータで正常に経路交換ができているか確認するため, r1の挙動を見ます.
 
+**IS-ISの挙動確認**
+
 最初に, ネイバーの確認を行います. 
 r1は隣接を正常に認識していますね.
 ```
@@ -221,7 +228,6 @@ Area 1:
  r2                  eth1        1  Up            28       aac1.abf0.72fc
  r3                  eth2        1  Up            28       aac1.ab1f.1519
 ```
-
 次に, インタフェースの状態を確認します. 
 level-1(同一エリア内)できちんと接続できていますね.
 ```
@@ -232,7 +238,7 @@ Area 1:
   eth2        0x22     Up       lan      L1     
 ```
 最後に, IS-ISのサマリーを確認していきます.
-送信側(TX)も受信側(RX)も正常にパケットが来ていますね.
+送信側(TX)も受信側(RX)も正常にパケットの送受信が行われていることがわかります.
 ```
 r1(config)# do show isis summary 
 vrf             : default
@@ -265,12 +271,6 @@ Area 1:
       last run duration : 68 usec
       run count         : 7
 ```
-
-<!-- ## 異なるエリア間の場合 -->
-
-<!-- ### 投入したコンフィグ -->
-
-<!-- ### 動作検証 -->
 
 ## まとめ
 今回はIS-ISを触ってみました.
