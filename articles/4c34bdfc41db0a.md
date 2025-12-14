@@ -4,10 +4,9 @@ emoji: "🌐"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [network, routing, is-is]
 published: true
-published_at: 2025-12-15
 ---
 
-本記事は[いちぴろ・エクスプローラ Advent Calendar 2025](https://qiita.com/advent-calendar/2025/ichipiro-explorer) Day 15の記事です.
+本記事は[いちぴろ・エクスプローラ Advent Calendar 2025](https://qiita.com/advent-calendar/2025/ichipiro-explorer) Day 14の記事です.
 
 本記事では, 有名なルーティングプロトコルであるIS-IS(Intermediate System to Intermediate System)を触ってみた結果を書いていきます.
 
